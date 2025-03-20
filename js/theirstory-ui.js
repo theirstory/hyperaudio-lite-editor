@@ -10,6 +10,7 @@ class TheirStoryUI {
         this.selectedStory = null;
         this.submitButton = null;
         this.initialized = false;
+        this.logoutButton = null;
     }
 
     initialize() {
@@ -26,6 +27,7 @@ class TheirStoryUI {
         this.passwordInput = document.getElementById('theirstory-password');
         this.loginButton = document.getElementById('theirstory-login');
         this.submitButton = document.getElementById('theirstory-submit-btn');
+        this.logoutButton = document.getElementById('theirstory-logout');
 
         if (!this.authSection || !this.loginButton) {
             console.error('TheirStory UI elements not found');
@@ -41,10 +43,15 @@ class TheirStoryUI {
                 this.loginButton.classList.remove('loading');
             } catch (error) {
                 this.loginButton.classList.remove('loading');
-                console.error('Login error:', error);
+                console.error('Login failed');
                 alert(error.message);
             }
         });
+
+        // Add logout button listener
+        if (this.logoutButton) {
+            this.logoutButton.addEventListener('click', () => this.handleLogout());
+        }
 
         // Handle story selection
         if (this.submitButton) {
@@ -55,30 +62,13 @@ class TheirStoryUI {
             });
         }
 
-        // Try auto-login if credentials exist
+        // Try auto-login if email exists (don't store password)
         const storedEmail = localStorage.getItem('theirstory_email');
-        const storedPassword = localStorage.getItem('theirstory_password');
-        if (storedEmail && storedPassword) {
+        if (storedEmail) {
             this.emailInput.value = storedEmail;
-            this.passwordInput.value = storedPassword;
-            this.handleLogin().catch(err => {
-                console.error('Auto-login failed:', err);
-                localStorage.removeItem('theirstory_email');
-                localStorage.removeItem('theirstory_password');
-            });
         }
 
         this.initialized = true;
-    }
-
-    resetUI() {
-        this.authSection.classList.remove('hidden');
-        this.storiesSection.classList.add('hidden');
-        this.storiesList.innerHTML = '';
-        this.selectedStory = null;
-        if (this.submitButton) {
-            this.submitButton.classList.add('hidden');
-        }
     }
 
     async handleLogin() {
@@ -95,12 +85,29 @@ class TheirStoryUI {
             this.authSection.classList.add('hidden');
             this.storiesSection.classList.remove('hidden');
             
-            // Store credentials on successful login
+            // Only store email, not password
             localStorage.setItem('theirstory_email', email);
-            localStorage.setItem('theirstory_password', password);
         } catch (error) {
-            console.error('Login failed:', error);
+            console.error('Login failed');
             throw new Error('Login failed: ' + error.message);
+        }
+    }
+
+    handleLogout() {
+        window.theirStoryIntegration.logout();
+        localStorage.removeItem('theirstory_email');
+        this.resetUI();
+        this.emailInput.value = '';
+        this.passwordInput.value = '';
+    }
+
+    resetUI() {
+        this.authSection.classList.remove('hidden');
+        this.storiesSection.classList.add('hidden');
+        this.storiesList.innerHTML = '';
+        this.selectedStory = null;
+        if (this.submitButton) {
+            this.submitButton.classList.add('hidden');
         }
     }
 
@@ -227,14 +234,13 @@ class TheirStoryUI {
             // Use the HTML transcript directly from the API
             transcriptContainer.innerHTML = transcriptHtml;
             console.log('Updated transcript content');
+
+            // Initialize Hyperaudio after content is updated
+            console.log('Initializing Hyperaudio');
+            window.document.dispatchEvent(new Event('hyperaudioInit'));
         } else {
             console.error('Could not find transcript container #hypertranscript');
         }
-
-        // Trigger the hyperaudio init event
-        console.log('Dispatching hyperaudioInit event');
-        window.document.dispatchEvent(new Event('hyperaudioInit'));
-        console.log('Editor update complete');
     }
 
     formatTranscript(transcript) {

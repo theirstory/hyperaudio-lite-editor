@@ -28,23 +28,21 @@ class TheirStoryIntegration {
                 console.error('API request failed:', {
                     url,
                     status: response.status,
-                    statusText: response.statusText,
-                    headers: Object.fromEntries(response.headers.entries()),
-                    body: errorText
+                    statusText: response.statusText
                 });
                 throw new Error(`${response.status} - ${errorText || response.statusText}`);
             }
 
             return response;
         } catch (error) {
-            console.error('Fetch error:', error);
+            console.error('API request failed');
             throw error;
         }
     }
 
     async authenticate(email, password) {
         try {
-            console.log('Attempting authentication...', { email });
+            console.log('Attempting authentication...');
             const response = await this.fetchWithAuth(`${this.baseUrl}/signin`, {
                 method: 'POST',
                 headers: {
@@ -58,8 +56,7 @@ class TheirStoryIntegration {
             });
 
             const data = await response.json();
-            console.log('Auth response data:', data);
-
+            
             if (!data.token) {
                 throw new Error('No authentication token received');
             }
@@ -68,9 +65,14 @@ class TheirStoryIntegration {
             console.log('Authentication successful');
             return data;
         } catch (error) {
-            console.error('Authentication error:', error);
+            console.error('Authentication failed');
             throw error;
         }
+    }
+
+    logout() {
+        this.token = null;
+        console.log('Logged out successfully');
     }
 
     async testToken() {
