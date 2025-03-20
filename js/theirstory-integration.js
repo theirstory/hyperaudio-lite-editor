@@ -16,6 +16,9 @@ class TheirStoryIntegration {
         };
 
         try {
+            console.log('Making API request to:', url);
+            console.log('With headers:', headers);
+            
             const response = await fetch(url, {
                 ...options,
                 headers,
@@ -28,14 +31,15 @@ class TheirStoryIntegration {
                 console.error('API request failed:', {
                     url,
                     status: response.status,
-                    statusText: response.statusText
+                    statusText: response.statusText,
+                    errorText
                 });
                 throw new Error(`${response.status} - ${errorText || response.statusText}`);
             }
 
             return response;
         } catch (error) {
-            console.error('API request failed');
+            console.error('API request failed:', error);
             throw error;
         }
     }
@@ -56,6 +60,7 @@ class TheirStoryIntegration {
             });
 
             const data = await response.json();
+            console.log('Auth response:', data);
             
             if (!data.token) {
                 throw new Error('No authentication token received');
@@ -65,7 +70,8 @@ class TheirStoryIntegration {
             console.log('Authentication successful');
             return data;
         } catch (error) {
-            console.error('Authentication failed');
+            console.error('Authentication failed:', error);
+            this.token = null;
             throw error;
         }
     }
@@ -81,20 +87,16 @@ class TheirStoryIntegration {
         }
 
         console.log('Testing token validity...');
-        const response = await this.fetchWithAuth(`${this.baseUrl}/stories`);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Token test failed:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries()),
-                body: errorText
-            });
-            throw new Error(`Token test failed: ${response.status}`);
+        try {
+            // Fetch just one story with minimal fields to validate token
+            const response = await this.fetchWithAuth(`${this.baseUrl}/stories?limit=1&fields=_id`);
+            const data = await response.json();
+            console.log('Token test successful:', data);
+            return data;
+        } catch (error) {
+            console.error('Token test failed:', error);
+            throw error;
         }
-
-        console.log('Token test successful');
     }
 
     async listStories() {
